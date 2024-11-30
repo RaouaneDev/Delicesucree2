@@ -16,8 +16,10 @@ import {
   useMediaQuery,
   Collapse,
   ListItemIcon,
+  Menu,
+  MenuItem,
 } from '@mui/material';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import MenuIcon from '@mui/icons-material/Menu';
 import ExpandLess from '@mui/icons-material/ExpandLess';
@@ -41,6 +43,8 @@ const Navbar = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [anchorElNav, setAnchorElNav] = React.useState(null);
+  const navigate = useNavigate();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -48,6 +52,14 @@ const Navbar = () => {
 
   const handleCategoriesClick = () => {
     setCategoriesOpen(!categoriesOpen);
+  };
+
+  const handleOpenNavMenu = (event) => {
+    setAnchorElNav(event.currentTarget);
+  };
+
+  const handleCloseNavMenu = () => {
+    setAnchorElNav(null);
   };
 
   const drawer = (
@@ -125,15 +137,51 @@ const Navbar = () => {
 
         {/* Menu hamburger pour mobile */}
         {isMobile && (
-          <IconButton
-            color="primary"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ display: { md: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
+          <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+            <IconButton
+              size="large"
+              aria-label="menu"
+              aria-controls="menu-appbar"
+              aria-haspopup="true"
+              onClick={handleOpenNavMenu}
+              color="inherit"
+            >
+              <MenuIcon />
+            </IconButton>
+            <Menu
+              id="menu-appbar"
+              anchorEl={anchorElNav}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'left',
+              }}
+              open={Boolean(anchorElNav)}
+              onClose={handleCloseNavMenu}
+              sx={{
+                display: { xs: 'block', md: 'none' },
+              }}
+            >
+              <MenuItem onClick={() => {
+                handleCloseNavMenu();
+                navigate('/');
+              }}>
+                <Typography textAlign="center">Accueil</Typography>
+              </MenuItem>
+              {categories.map((category) => (
+                <MenuItem key={category.path} onClick={() => {
+                  handleCloseNavMenu();
+                  navigate(category.path);
+                }}>
+                  <Typography textAlign="center">{category.name}</Typography>
+                </MenuItem>
+              ))}
+            </Menu>
+          </Box>
         )}
 
         {/* Navigation desktop */}
