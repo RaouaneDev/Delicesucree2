@@ -22,9 +22,11 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import { useCart } from '../context/CartContext';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
 
 const Cart = () => {
   const { items, removeFromCart, getTotalPrice, updateDeliveryDateTime, deliveryDateTime, updateQuantity } = useCart();
+  const navigate = useNavigate();
   const [dateTimeError, setDateTimeError] = useState('');
   const [customerInfo, setCustomerInfo] = useState({
     firstName: '',
@@ -77,6 +79,19 @@ const Cart = () => {
       customerInfo.postalCode &&
       customerInfo.city
     );
+  };
+
+  const handleOrder = () => {
+    const orderDetails = {
+      items: items.map(item => ({
+        ...item,
+        price: parseFloat(item.price)
+      })),
+      customerInfo,
+      deliveryDateTime,
+      totalPrice: getTotalPrice()
+    };
+    navigate('/confirmation', { state: { orderDetails } });
   };
 
   if (!items || items.length === 0) {
@@ -259,14 +274,7 @@ const Cart = () => {
           size="large"
           fullWidth
           disabled={!isCustomerInfoComplete() || !deliveryDateTime}
-          onClick={() => {
-            console.log('Commander:', {
-              items,
-              customerInfo,
-              deliveryDateTime,
-              totalPrice: getTotalPrice()
-            });
-          }}
+          onClick={handleOrder}
         >
           Commander
         </Button>
@@ -418,14 +426,7 @@ const Cart = () => {
               size="large"
               fullWidth
               disabled={!isCustomerInfoComplete() || !deliveryDateTime}
-              onClick={() => {
-                console.log('Commander:', {
-                  items,
-                  customerInfo,
-                  deliveryDateTime,
-                  totalPrice: getTotalPrice()
-                });
-              }}
+              onClick={handleOrder}
             >
               Commander
             </Button>
