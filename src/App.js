@@ -12,6 +12,7 @@ import Cart from './components/Cart';
 import CategoryProducts from './components/CategoryProducts';
 import FloatingCart from './components/FloatingCart';
 import OrderConfirmation from './components/OrderConfirmation';
+import OrderHistory from './components/OrderHistory';
 import { CartProvider } from './context/CartContext';
 
 const theme = createTheme({
@@ -57,6 +58,7 @@ function App() {
               <Route path="/cart" element={<Cart />} />
               <Route path="/category/:category" element={<CategoryProducts />} />
               <Route path="/confirmation" element={<OrderConfirmation />} />
+              <Route path="/admin/orders" element={<OrderHistory />} />
             </Routes>
             <FloatingCart />
           </Router>

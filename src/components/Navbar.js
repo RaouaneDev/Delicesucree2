@@ -180,78 +180,43 @@ const Navbar = () => {
                   <Typography textAlign="center">{category.name}</Typography>
                 </MenuItem>
               ))}
+              <MenuItem onClick={() => {
+                handleCloseNavMenu();
+                navigate('/admin/orders');
+              }}>
+                <Typography textAlign="center">Historique des commandes</Typography>
+              </MenuItem>
             </Menu>
           </Box>
         )}
 
         {/* Navigation desktop */}
-        {!isMobile && (
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+        <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
+          <Button
+            component={Link}
+            to="/"
+            sx={{ color: 'white', mx: 1 }}
+          >
+            Accueil
+          </Button>
+          {categories.map((category) => (
             <Button
-              color="inherit"
+              key={category.path}
               component={Link}
-              to="/"
-              sx={{
-                '&:hover': {
-                  bgcolor: 'rgba(255, 64, 129, 0.08)',
-                },
-              }}
+              to={category.path}
+              sx={{ color: 'white', mx: 1 }}
             >
-              Accueil
+              {category.name}
             </Button>
-            <Box
-              sx={{
-                position: 'relative',
-                '&:hover > .MuiBox-root': { display: 'block' },
-              }}
-            >
-              <Button
-                color="inherit"
-                sx={{
-                  '&:hover': {
-                    bgcolor: 'rgba(255, 64, 129, 0.08)',
-                  },
-                }}
-              >
-                Nos Pâtisseries
-              </Button>
-              <Box
-                sx={{
-                  display: 'none',
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  bgcolor: 'background.paper',
-                  boxShadow: 3,
-                  borderRadius: 1,
-                  width: 220,
-                  zIndex: 1,
-                }}
-              >
-                {categories.map((category) => (
-                  <Button
-                    key={category.path}
-                    component={Link}
-                    to={category.path}
-                    fullWidth
-                    sx={{
-                      justifyContent: 'flex-start',
-                      px: 2,
-                      py: 1,
-                      textAlign: 'left',
-                      color: 'text.primary',
-                      '&:hover': {
-                        bgcolor: 'rgba(255, 64, 129, 0.08)',
-                      },
-                    }}
-                  >
-                    {category.name}
-                  </Button>
-                ))}
-              </Box>
-            </Box>
-          </Box>
-        )}
+          ))}
+          <Button
+            component={Link}
+            to="/admin/orders"
+            sx={{ color: 'white', mx: 1 }}
+          >
+            Historique des commandes
+          </Button>
+        </Box>
 
         {/* Panier - toujours visible */}
         <IconButton

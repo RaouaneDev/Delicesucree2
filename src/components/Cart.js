@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -23,6 +23,7 @@ import { useCart } from '../context/CartContext';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
+import { scrollToTop } from '../utils/scrollToTop';
 
 const Cart = () => {
   const { items, removeFromCart, getTotalPrice, updateDeliveryDateTime, deliveryDateTime, updateQuantity, clearCart } = useCart();
@@ -37,6 +38,11 @@ const Cart = () => {
     postalCode: '',
     city: '',
   });
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    scrollToTop();
+  }, []);
 
   const handleDateTimeChange = (newValue) => {
     const now = dayjs();

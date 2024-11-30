@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import Confetti from 'react-confetti';
 import { QRCodeCanvas } from 'qrcode.react';
+import { scrollToTop } from '../utils/scrollToTop';
 
 const OrderConfirmation = () => {
   const { state } = useLocation();
@@ -19,8 +20,12 @@ const OrderConfirmation = () => {
     height: window.innerHeight,
   });
   const [showConfetti, setShowConfetti] = useState(true);
+  const [orderNumber] = useState(`CMD${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`);
 
   useEffect(() => {
+    // Scroll to top when component mounts
+    scrollToTop();
+    
     const handleResize = () => {
       setWindowSize({
         width: window.innerWidth,
@@ -30,15 +35,38 @@ const OrderConfirmation = () => {
 
     window.addEventListener('resize', handleResize);
 
-    const timer = setTimeout(() => {
-      setShowConfetti(false);
-    }, 5000);
-
     return () => {
       window.removeEventListener('resize', handleResize);
-      clearTimeout(timer);
     };
   }, []);
+
+  useEffect(() => {
+    if (state && state.orderDetails) {
+      const totalPrice = state.orderDetails.items.reduce(
+        (total, item) => total + (parseFloat(item.price) * item.quantity),
+        0
+      );
+
+      // Sauvegarder la commande dans l'historique
+      const orderWithNumber = {
+        ...state.orderDetails,
+        orderNumber,
+        status: 'En attente',
+        orderDate: new Date().toISOString(),
+        totalPrice: totalPrice
+      };
+
+      const savedOrders = JSON.parse(localStorage.getItem('orderHistory') || '[]');
+      savedOrders.unshift(orderWithNumber);
+      localStorage.setItem('orderHistory', JSON.stringify(savedOrders));
+
+      const timer = setTimeout(() => {
+        setShowConfetti(false);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [state, orderNumber]);
 
   if (!state || !state.orderDetails) {
     navigate('/');
@@ -47,7 +75,6 @@ const OrderConfirmation = () => {
 
   const { items, customerInfo, deliveryDateTime } = state.orderDetails;
   const totalPrice = items.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const orderNumber = `CMD${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`;
 
   const formatDate = (date) => {
     const d = new Date(date);
