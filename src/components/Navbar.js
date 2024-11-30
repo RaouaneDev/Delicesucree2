@@ -30,10 +30,10 @@ import { useCart } from '../context/CartContext';
 const categories = [
   { name: 'Mariages', path: '/category/mariages' },
   { name: 'Anniversaires', path: '/category/anniversaires' },
-  { name: 'Événements d\'entreprise', path: '/category/corporate' },
-  { name: 'Célébrations religieuses', path: '/category/religious' },
+  { name: 'Événements d\'entreprise', path: '/category/entreprise' },
+  { name: 'Célébrations religieuses', path: '/category/religieux' },
   { name: 'Baby Showers', path: '/category/babyshower' },
-  { name: 'Cocktails', path: '/category/cocktail' },
+  { name: 'Cocktails', path: '/category/cocktails' },
 ];
 
 const Navbar = () => {
@@ -43,7 +43,7 @@ const Navbar = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
-  const [anchorElNav, setAnchorElNav] = React.useState(null);
+  const [anchorElNav, setAnchorElNav] = useState(null);
   const navigate = useNavigate();
 
   const handleDrawerToggle = () => {
@@ -118,8 +118,8 @@ const Navbar = () => {
   );
 
   return (
-    <AppBar position="sticky" color="default" elevation={1}>
-      <Toolbar sx={{ justifyContent: 'space-between' }}>
+    <AppBar position="sticky" sx={{ backgroundColor: '#1a1a1a' }}>
+      <Toolbar>
         {/* Logo - toujours visible */}
         <Typography
           variant="h6"
@@ -127,7 +127,7 @@ const Navbar = () => {
           to="/"
           sx={{
             textDecoration: 'none',
-            color: 'primary.main',
+            color: '#ffd700',
             fontWeight: 700,
             display: { xs: 'none', sm: 'block' }
           }}
@@ -144,7 +144,7 @@ const Navbar = () => {
               aria-controls="menu-appbar"
               aria-haspopup="true"
               onClick={handleOpenNavMenu}
-              color="inherit"
+              sx={{ color: '#ffffff' }}
             >
               <MenuIcon />
             </IconButton>
@@ -164,38 +164,47 @@ const Navbar = () => {
               onClose={handleCloseNavMenu}
               sx={{
                 display: { xs: 'block', md: 'none' },
+                '& .MuiPaper-root': {
+                  backgroundColor: '#1a1a1a',
+                },
               }}
             >
               <MenuItem onClick={() => {
                 handleCloseNavMenu();
                 navigate('/');
               }}>
-                <Typography textAlign="center">Accueil</Typography>
+                <Typography textAlign="center" sx={{ color: '#ffffff' }}>Accueil</Typography>
               </MenuItem>
               {categories.map((category) => (
-                <MenuItem key={category.path} onClick={() => {
-                  handleCloseNavMenu();
-                  navigate(category.path);
-                }}>
+                <MenuItem 
+                  key={category.path} 
+                  onClick={() => {
+                    handleCloseNavMenu();
+                    navigate(category.path);
+                  }}
+                  sx={{ color: '#ffffff' }}
+                >
                   <Typography textAlign="center">{category.name}</Typography>
                 </MenuItem>
               ))}
-              <MenuItem onClick={() => {
-                handleCloseNavMenu();
-                navigate('/admin/orders');
-              }}>
-                <Typography textAlign="center">Historique des commandes</Typography>
-              </MenuItem>
             </Menu>
           </Box>
         )}
 
         {/* Navigation desktop */}
-        <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
+        <Box sx={{ 
+          flexGrow: 1, 
+          display: { xs: 'none', md: 'flex' }, 
+          justifyContent: 'center',
+          gap: 2
+        }}>
           <Button
             component={Link}
             to="/"
-            sx={{ color: 'white', mx: 1 }}
+            sx={{ 
+              color: '#ffffff',
+              '&:hover': { color: '#ffd700' }
+            }}
           >
             Accueil
           </Button>
@@ -204,32 +213,26 @@ const Navbar = () => {
               key={category.path}
               component={Link}
               to={category.path}
-              sx={{ color: 'white', mx: 1 }}
+              sx={{ 
+                color: '#ffffff',
+                '&:hover': { color: '#ffd700' }
+              }}
             >
               {category.name}
             </Button>
           ))}
-          <Button
-            component={Link}
-            to="/admin/orders"
-            sx={{ color: 'white', mx: 1 }}
-          >
-            Historique des commandes
-          </Button>
         </Box>
 
-        {/* Panier - toujours visible */}
+        {/* Panier */}
         <IconButton
-          color="primary"
           component={Link}
           to="/cart"
           sx={{
-            '&:hover': {
-              bgcolor: 'rgba(255, 64, 129, 0.08)',
-            },
+            color: '#ffffff',
+            '&:hover': { color: '#ffd700' },
           }}
         >
-          <Badge badgeContent={getCartItemsCount()} color="primary">
+          <Badge badgeContent={getCartItemsCount()} color="error">
             <ShoppingCartIcon />
           </Badge>
         </IconButton>
@@ -241,11 +244,16 @@ const Navbar = () => {
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{
-            keepMounted: true, // Better mobile performance
+            keepMounted: true,
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 250 },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: 250,
+              backgroundColor: '#1a1a1a',
+              color: '#ffffff'
+            },
           }}
         >
           {drawer}
