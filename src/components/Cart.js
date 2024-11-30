@@ -25,7 +25,7 @@ import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 
 const Cart = () => {
-  const { items, removeFromCart, getTotalPrice, updateDeliveryDateTime, deliveryDateTime, updateQuantity } = useCart();
+  const { items, removeFromCart, getTotalPrice, updateDeliveryDateTime, deliveryDateTime, updateQuantity, clearCart } = useCart();
   const navigate = useNavigate();
   const [dateTimeError, setDateTimeError] = useState('');
   const [customerInfo, setCustomerInfo] = useState({
@@ -91,6 +91,7 @@ const Cart = () => {
       deliveryDateTime,
       totalPrice: getTotalPrice()
     };
+    clearCart();
     navigate('/confirmation', { state: { orderDetails } });
   };
 

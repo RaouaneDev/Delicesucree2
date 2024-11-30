@@ -53,6 +53,10 @@ export const CartProvider = ({ children }) => {
     });
   };
 
+  const clearCart = () => {
+    setItems([]);
+  };
+
   const getTotalPrice = () => {
     return items.reduce((total, item) => {
       const price = parseFloat(item.price.replace('€', '').replace(',', '.'));
@@ -85,6 +89,7 @@ export const CartProvider = ({ children }) => {
       addItem,
       removeFromCart,
       updateQuantity,
+      clearCart,
       getTotalPrice,
       getCartItemsCount,
       deliveryDateTime,
