@@ -11,7 +11,6 @@ const ProductList = ({ category }) => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const { isAnimating, startAnimation, animationConfig } = useAddToCartAnimation();
   const productRefs = useRef({});
-  const cartRef = useRef(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

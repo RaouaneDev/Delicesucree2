@@ -3,9 +3,7 @@ import {
   collection, 
   getDocs, 
   query, 
-  where,
-  doc,
-  getDoc
+  where
 } from 'firebase/firestore';
 
 // Récupérer toutes les catégories

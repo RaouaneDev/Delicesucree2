@@ -43,8 +43,7 @@ const AdminProducts = () => {
   const [editProduct, setEditProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('');
 
   const defaultProduct = {
     name: '',
@@ -100,16 +99,10 @@ const AdminProducts = () => {
         price: typeof product.price === 'number' ? product.price.toString() : product.price
       });
       setSelectedCategory(categories.find(cat => cat.id === product.categoryId));
-      setSelectedSubcategory(
-        categories
-          .find(cat => cat.id === product.categoryId)
-          ?.subcategories.find(sub => sub.id === product.subcategoryId)
-      );
     } else {
       setEditProduct(null);
       setFormData(defaultProduct);
-      setSelectedCategory(null);
-      setSelectedSubcategory(null);
+      setSelectedCategory('');
     }
     setOpen(true);
   };
@@ -118,8 +111,7 @@ const AdminProducts = () => {
     setOpen(false);
     setEditProduct(null);
     setFormData(defaultProduct);
-    setSelectedCategory(null);
-    setSelectedSubcategory(null);
+    setSelectedCategory('');
     setError(null);
   };
 
@@ -128,7 +120,6 @@ const AdminProducts = () => {
     if (name === 'categoryId') {
       const category = categories.find(cat => cat.id === value);
       setSelectedCategory(category);
-      setSelectedSubcategory(null);
       setFormData(prev => ({
         ...prev,
         categoryId: category.id,
@@ -138,7 +129,6 @@ const AdminProducts = () => {
       }));
     } else if (name === 'subcategoryId') {
       const subcategory = selectedCategory.subcategories.find(sub => sub.id === value);
-      setSelectedSubcategory(subcategory);
       setFormData(prev => ({
         ...prev,
         subcategoryId: subcategory.id,

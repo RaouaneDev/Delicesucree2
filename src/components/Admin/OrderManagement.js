@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
-  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  IconButton,
+  Paper,
+  Typography,
   Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  Typography,
   Box,
   Chip,
   Alert,
@@ -29,7 +27,8 @@ import {
   CardContent,
   Tabs,
   Tab,
-  Tooltip
+  Tooltip,
+  IconButton
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -77,7 +76,7 @@ const OrderManagement = () => {
       return;
     }
     loadOrders();
-  }, [isAdmin, navigate, statusFilter]);
+  }, [isAdmin, navigate, loadOrders]);
 
   const loadOrders = async () => {
     try {

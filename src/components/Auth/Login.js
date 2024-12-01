@@ -9,8 +9,7 @@ import {
   Typography,
   Box,
   Divider,
-  Alert,
-  IconButton
+  Alert
 } from '@mui/material';
 import {
   Google as GoogleIcon,
