@@ -19,18 +19,30 @@ const facebookProvider = new FacebookAuthProvider();
 const handleAuthError = (error) => {
   console.error('Firebase Auth Error:', error);
   switch (error.code) {
+    case 'auth/invalid-email':
+      throw new Error('Adresse email invalide.');
+    case 'auth/user-disabled':
+      throw new Error('Ce compte a été désactivé.');
+    case 'auth/user-not-found':
+      throw new Error('Aucun compte ne correspond à cet email.');
+    case 'auth/wrong-password':
+      throw new Error('Mot de passe incorrect.');
+    case 'auth/email-already-in-use':
+      throw new Error('Cette adresse email est déjà utilisée.');
     case 'auth/operation-not-allowed':
       throw new Error('Cette méthode de connexion n\'est pas activée.');
+    case 'auth/weak-password':
+      throw new Error('Le mot de passe est trop faible.');
     case 'auth/popup-blocked':
       throw new Error('La fenêtre popup a été bloquée. Veuillez autoriser les popups pour ce site.');
     case 'auth/popup-closed-by-user':
-      throw new Error('La fenêtre de connexion a été fermée avant la fin du processus.');
+      throw new Error('La fenêtre de connexion a été fermée.');
     case 'auth/cancelled-popup-request':
-      throw new Error('La demande de connexion a été annulée.');
-    case 'auth/user-disabled':
-      throw new Error('Ce compte utilisateur a été désactivé.');
+      throw new Error('Opération annulée.');
+    case 'auth/network-request-failed':
+      throw new Error('Erreur de connexion réseau. Vérifiez votre connexion internet.');
     default:
-      throw error;
+      throw new Error('Une erreur est survenue lors de l\'authentification.');
   }
 };
 
@@ -80,8 +92,8 @@ export const registerUser = async (email, password, displayName) => {
 // Connexion
 export const loginUser = async (email, password) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return result.user;
   } catch (error) {
     throw handleAuthError(error);
   }

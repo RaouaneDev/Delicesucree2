@@ -19,13 +19,13 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize services
 export const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence)
+  .catch((error) => {
+    console.error("Erreur de persistance:", error);
+  });
+
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const analytics = getAnalytics(app);
-
-// Configure auth persistence
-setPersistence(auth, browserLocalPersistence).catch((error) => {
-  console.error("Error setting auth persistence:", error);
-});
 
 export default app;
