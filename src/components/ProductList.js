@@ -1,108 +1,102 @@
-import React from 'react';
-import { Container, Grid, Card, CardMedia, CardContent, Typography, Button, CardActions } from '@mui/material';
+import React, { useRef, useState, useEffect } from 'react';
+import { Container, Grid, Card, CardMedia, CardContent, Typography, Button, CardActions, CircularProgress } from '@mui/material';
 import { useCart } from '../context/CartContext';
 import { Snackbar } from '@mui/material';
-import { useState } from 'react';
+import AddToCartAnimation from './AddToCartAnimation';
+import useAddToCartAnimation from '../hooks/useAddToCartAnimation';
+import { getAllProducts, getProductsByCategory } from '../firebase/productService';
 
-const products = [
-  {
-    id: 1,
-    name: 'Éclair au Chocolat',
-    price: '3.50€',
-    description: 'Pâte à choux croustillante garnie d\'une onctueuse crème pâtissière au chocolat noir',
-    image: 'https://images.unsplash.com/photo-1621303837174-89787a7d4729?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 2,
-    name: 'Mille-feuille Vanille',
-    price: '4.50€',
-    description: 'Trois couches de pâte feuilletée croustillante et deux couches de crème pâtissière à la vanille de Madagascar',
-    image: 'https://images.unsplash.com/photo-1620980776848-84ac10194945?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 3,
-    name: 'Tarte aux Fraises',
-    price: '4.00€',
-    description: 'Pâte sablée, crème d\'amande, crème pâtissière et fraises fraîches de saison',
-    image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 4,
-    name: 'Macaron Assortiment',
-    price: '12.00€',
-    description: 'Coffret de 6 macarons : vanille, chocolat, framboise, pistache, caramel, citron',
-    image: 'https://images.unsplash.com/photo-1569864358642-9d1684040f43?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 5,
-    name: 'Paris-Brest',
-    price: '4.50€',
-    description: 'Couronne de pâte à choux garnie d\'une crème pralinée aux noisettes',
-    image: 'https://images.unsplash.com/photo-1509365465985-25d11c17e812?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 6,
-    name: 'Opéra',
-    price: '5.00€',
-    description: 'Biscuit joconde, crème au beurre café, ganache chocolat',
-    image: 'https://images.unsplash.com/photo-1551404973-761c83cd8339?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 7,
-    name: 'Croissant aux Amandes',
-    price: '2.80€',
-    description: 'Croissant feuilleté garni de crème d\'amandes et amandes effilées',
-    image: 'https://images.unsplash.com/photo-1509983165097-0c31a863e3f3?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 8,
-    name: 'Tarte au Citron Meringuée',
-    price: '4.00€',
-    description: 'Pâte sablée, crème au citron et meringue italienne',
-    image: 'https://images.unsplash.com/photo-1519915028121-7d3463d20b13?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 9,
-    name: 'Forêt Noire',
-    price: '4.50€',
-    description: 'Génoise au chocolat, chantilly, cerises amarena et copeaux de chocolat',
-    image: 'https://images.unsplash.com/photo-1571115177098-24ec42ed204d?auto=format&fit=crop&w=800&q=80',
-  }
-];
-
-const ProductList = () => {
-  const { addToCart } = useCart();
+const ProductList = ({ category }) => {
+  const { addItem } = useCart();
   const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const { isAnimating, startAnimation, animationConfig } = useAddToCartAnimation();
+  const productRefs = useRef({});
+  const cartRef = useRef(null);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleAddToCart = (product) => {
-    addToCart(product);
-    setSnackbarMessage(`${product.name} ajouté au panier`);
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        const data = category 
+          ? await getProductsByCategory(category)
+          : await getAllProducts();
+        setProducts(data);
+      } catch (err) {
+        console.error('Erreur lors du chargement des produits:', err);
+        setError('Une erreur est survenue lors du chargement des produits.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [category]);
+
+  const handleAddToCart = (product, event) => {
+    const productElement = productRefs.current[product.id];
+    const cartElement = document.querySelector('.MuiIconButton-root .MuiBadge-root');
+    
+    if (productElement && cartElement) {
+      startAnimation(productElement, cartElement);
+    }
+    
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: 1,
+    });
+    
     setOpenSnackbar(true);
   };
 
+  if (loading) {
+    return (
+      <Container sx={{ py: 8, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container sx={{ py: 8 }}>
+        <Typography color="error" align="center">{error}</Typography>
+      </Container>
+    );
+  }
+
   return (
-    <Container sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom align="center" sx={{ mb: 4 }}>
-        Nos Pâtisseries
-      </Typography>
+    <Container sx={{ py: 8 }} maxWidth="lg">
+      <AddToCartAnimation
+        isVisible={isAnimating}
+        startPosition={animationConfig.startPosition}
+        endPosition={animationConfig.endPosition}
+      />
+      
       <Grid container spacing={4}>
         {products.map((product) => (
           <Grid item key={product.id} xs={12} sm={6} md={4}>
-            <Card sx={{ 
-              height: '100%', 
-              display: 'flex', 
-              flexDirection: 'column',
-              transition: '0.3s',
-              '&:hover': {
-                transform: 'translateY(-5px)',
-                boxShadow: 3,
-              }
-            }}>
+            <Card
+              ref={el => productRefs.current[product.id] = el}
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                }
+              }}
+            >
               <CardMedia
                 component="img"
-                height="260"
-                image={product.image}
+                height="200"
+                image={product.image || '/placeholder.jpg'}
                 alt={product.name}
                 sx={{ objectFit: 'cover' }}
               />
@@ -110,21 +104,20 @@ const ProductList = () => {
                 <Typography gutterBottom variant="h5" component="h2">
                   {product.name}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography>
                   {product.description}
                 </Typography>
-                <Typography variant="h6" color="primary">
-                  {product.price}
+                <Typography variant="h6" color="primary" sx={{ mt: 2 }}>
+                  {product.price} €
                 </Typography>
               </CardContent>
               <CardActions>
                 <Button 
                   size="large" 
-                  color="primary" 
+                  fullWidth 
                   variant="contained" 
-                  fullWidth
-                  sx={{ mx: 1, mb: 1 }}
-                  onClick={() => handleAddToCart(product)}
+                  color="primary"
+                  onClick={(e) => handleAddToCart(product, e)}
                 >
                   Ajouter au panier
                 </Button>
@@ -133,11 +126,12 @@ const ProductList = () => {
           </Grid>
         ))}
       </Grid>
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={3000}
         onClose={() => setOpenSnackbar(false)}
-        message={snackbarMessage}
+        message="Produit ajouté au panier"
       />
     </Container>
   );

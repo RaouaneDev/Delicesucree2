@@ -1,11 +1,32 @@
 import React, { createContext, useContext, useState } from 'react';
 
-const CartContext = createContext();
+const CartContext = createContext({
+  cartItems: [],
+  addItem: () => {},
+  removeFromCart: () => {},
+  updateQuantity: () => {},
+  clearCart: () => {},
+  getTotalPrice: () => '0.00',
+  getCartItemsCount: () => 0,
+  deliveryDateTime: null,
+  updateDeliveryDateTime: () => {},
+  customerInfo: {
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    postalCode: '',
+    city: '',
+  },
+  updateCustomerInfo: () => {},
+  isCustomerInfoComplete: () => false
+});
 
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
-  const [items, setItems] = useState([]);
+  const [cartItems, setCartItems] = useState([]);
   const [deliveryDateTime, setDeliveryDateTime] = useState(null);
   const [customerInfo, setCustomerInfo] = useState({
     firstName: '',
@@ -18,7 +39,7 @@ export const CartProvider = ({ children }) => {
   });
 
   const addItem = (item) => {
-    setItems(prevItems => {
+    setCartItems(prevItems => {
       const existingItemIndex = prevItems.findIndex(
         i => i.id === item.id && i.customMessage === item.customMessage
       );
@@ -36,36 +57,37 @@ export const CartProvider = ({ children }) => {
     });
   };
 
-  const removeFromCart = (index) => {
-    setItems(prevItems => prevItems.filter((_, i) => i !== index));
+  const removeFromCart = (productId) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
   };
 
-  const updateQuantity = (index, newQuantity) => {
+  const updateQuantity = (productId, newQuantity) => {
     if (newQuantity < 1) return;
     
-    setItems(prevItems => {
-      const newItems = [...prevItems];
-      newItems[index] = {
-        ...newItems[index],
-        quantity: newQuantity
-      };
-      return newItems;
+    setCartItems(prevItems => {
+      return prevItems.map(item => 
+        item.id === productId 
+          ? { ...item, quantity: newQuantity }
+          : item
+      );
     });
   };
 
   const clearCart = () => {
-    setItems([]);
+    setCartItems([]);
   };
 
   const getTotalPrice = () => {
-    return items.reduce((total, item) => {
-      const price = parseFloat(item.price.replace('€', '').replace(',', '.'));
+    return cartItems.reduce((total, item) => {
+      const price = typeof item.price === 'string' 
+        ? parseFloat(item.price.replace('€', '').replace(',', '.'))
+        : parseFloat(item.price);
       return total + (price * item.quantity);
     }, 0).toFixed(2);
   };
 
   const getCartItemsCount = () => {
-    return items.reduce((count, item) => count + item.quantity, 0);
+    return cartItems.reduce((count, item) => count + item.quantity, 0);
   };
 
   const updateDeliveryDateTime = (datetime) => {
@@ -83,22 +105,26 @@ export const CartProvider = ({ children }) => {
     return Object.values(customerInfo).every(value => value.trim() !== '');
   };
 
+  const value = {
+    cartItems,
+    addItem,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    getTotalPrice,
+    getCartItemsCount,
+    deliveryDateTime,
+    updateDeliveryDateTime,
+    customerInfo,
+    updateCustomerInfo,
+    isCustomerInfoComplete
+  };
+
   return (
-    <CartContext.Provider value={{
-      items,
-      addItem,
-      removeFromCart,
-      updateQuantity,
-      clearCart,
-      getTotalPrice,
-      getCartItemsCount,
-      deliveryDateTime,
-      updateDeliveryDateTime,
-      customerInfo,
-      updateCustomerInfo,
-      isCustomerInfoComplete
-    }}>
+    <CartContext.Provider value={value}>
       {children}
     </CartContext.Provider>
   );
 };
+
+export default CartContext;

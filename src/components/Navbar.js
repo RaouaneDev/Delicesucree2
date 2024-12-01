@@ -1,150 +1,105 @@
 import React, { useState } from 'react';
 import {
   AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Badge,
   Box,
+  Toolbar,
   IconButton,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemButton,
-  useTheme,
-  useMediaQuery,
-  Collapse,
-  ListItemIcon,
+  Typography,
   Menu,
+  Container,
+  Avatar,
+  Button,
+  Tooltip,
   MenuItem,
+  Badge,
+  Divider,
 } from '@mui/material';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import MenuIcon from '@mui/icons-material/Menu';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
-import CakeIcon from '@mui/icons-material/Cake';
+import {
+  Menu as MenuIcon,
+  ShoppingCart as ShoppingCartIcon,
+  AdminPanelSettings as AdminIcon,
+  Assignment as OrdersIcon,
+  Inventory as ProductsIcon,
+} from '@mui/icons-material';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { logoutUser } from '../firebase/authService';
 
-const categories = [
-  { name: 'Mariages', path: '/category/mariages' },
-  { name: 'Anniversaires', path: '/category/anniversaires' },
-  { name: 'Événements d\'entreprise', path: '/category/entreprise' },
-  { name: 'Célébrations religieuses', path: '/category/religieux' },
-  { name: 'Baby Showers', path: '/category/babyshower' },
-  { name: 'Cocktails', path: '/category/cocktails' },
+const pages = [
+  { title: 'Accueil', path: '/' },
+  { title: 'Nos Produits', path: '/categories' },
+  { title: 'Contact', path: '/contact' },
 ];
 
 const Navbar = () => {
-  const { getCartItemsCount } = useCart();
-  const location = useLocation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [anchorElNav, setAnchorElNav] = useState(null);
+  const [anchorElUser, setAnchorElUser] = useState(null);
+  const { user, isAdmin } = useAuth();
+  const { cartItems } = useCart();
   const navigate = useNavigate();
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
-  const handleCategoriesClick = () => {
-    setCategoriesOpen(!categoriesOpen);
-  };
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
+  };
+
+  const handleOpenUserMenu = (event) => {
+    setAnchorElUser(event.currentTarget);
   };
 
   const handleCloseNavMenu = () => {
     setAnchorElNav(null);
   };
 
-  const drawer = (
-    <Box sx={{ width: 250 }}>
-      <List>
-        <ListItem component={Link} to="/" onClick={handleDrawerToggle}>
-          <ListItemText 
-            primary="Délices Sucrés" 
-            primaryTypographyProps={{
-              variant: 'h6',
-              sx: { color: theme.palette.primary.main }
-            }}
-          />
-        </ListItem>
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
+  };
 
-        <ListItemButton onClick={handleCategoriesClick}>
-          <ListItemIcon>
-            <CakeIcon color="primary" />
-          </ListItemIcon>
-          <ListItemText primary="Nos Pâtisseries" />
-          {categoriesOpen ? <ExpandLess /> : <ExpandMore />}
-        </ListItemButton>
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      navigate('/');
+      handleCloseUserMenu();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
-        <Collapse in={categoriesOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            {categories.map((category) => (
-              <ListItemButton
-                key={category.path}
-                component={Link}
-                to={category.path}
-                onClick={handleDrawerToggle}
-                selected={location.pathname === category.path}
-                sx={{ pl: 4 }}
-              >
-                <ListItemText primary={category.name} />
-              </ListItemButton>
-            ))}
-          </List>
-        </Collapse>
-
-        <ListItemButton
-          component={Link}
-          to="/cart"
-          onClick={handleDrawerToggle}
-          selected={location.pathname === '/cart'}
-        >
-          <ListItemIcon>
-            <Badge badgeContent={getCartItemsCount()} color="primary">
-              <ShoppingCartIcon />
-            </Badge>
-          </ListItemIcon>
-          <ListItemText primary="Panier" />
-        </ListItemButton>
-      </List>
-    </Box>
-  );
+  const getCartItemCount = () => {
+    return cartItems.reduce((total, item) => total + item.quantity, 0);
+  };
 
   return (
     <AppBar position="sticky" sx={{ backgroundColor: '#1a1a1a' }}>
-      <Toolbar>
-        {/* Logo - toujours visible */}
-        <Typography
-          variant="h6"
-          component={Link}
-          to="/"
-          sx={{
-            textDecoration: 'none',
-            color: '#ffd700',
-            fontWeight: 700,
-            display: { xs: 'none', sm: 'block' }
-          }}
-        >
-          Délices Sucrés
-        </Typography>
+      <Container maxWidth="xl">
+        <Toolbar disableGutters>
+          {/* Logo - Desktop */}
+          <Typography
+            variant="h6"
+            noWrap
+            component={Link}
+            to="/"
+            sx={{
+              mr: 2,
+              display: { xs: 'none', md: 'flex' },
+              fontFamily: 'Playfair Display, serif',
+              fontWeight: 700,
+              color: 'inherit',
+              textDecoration: 'none',
+            }}
+          >
+            Délices Sucrés
+          </Typography>
 
-        {/* Menu hamburger pour mobile */}
-        {isMobile && (
-          <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+          {/* Menu Mobile */}
+          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
               aria-label="menu"
               aria-controls="menu-appbar"
               aria-haspopup="true"
               onClick={handleOpenNavMenu}
-              sx={{ color: '#ffffff' }}
+              color="inherit"
             >
               <MenuIcon />
             </IconButton>
@@ -164,101 +119,206 @@ const Navbar = () => {
               onClose={handleCloseNavMenu}
               sx={{
                 display: { xs: 'block', md: 'none' },
-                '& .MuiPaper-root': {
-                  backgroundColor: '#1a1a1a',
-                },
               }}
             >
-              <MenuItem onClick={() => {
-                handleCloseNavMenu();
-                navigate('/');
-              }}>
-                <Typography textAlign="center" sx={{ color: '#ffffff' }}>Accueil</Typography>
-              </MenuItem>
-              {categories.map((category) => (
-                <MenuItem 
-                  key={category.path} 
-                  onClick={() => {
-                    handleCloseNavMenu();
-                    navigate(category.path);
-                  }}
-                  sx={{ color: '#ffffff' }}
+              {pages.map((page) => (
+                
+                <MenuItem
+                  key={page.title}
+                  onClick={handleCloseNavMenu}
+                  component={Link}
+                  to={page.path}
                 >
-                  <Typography textAlign="center">{category.name}</Typography>
+                  <Typography textAlign="center">{page.title}</Typography>
                 </MenuItem>
               ))}
+              {isAdmin && (
+                <>
+                  <Divider />
+                  <MenuItem
+                    onClick={handleCloseNavMenu}
+                    component={Link}
+                    to="/admin/products"
+                  >
+                    <ProductsIcon sx={{ mr: 1 }} />
+                    <Typography textAlign="center">Gestion Produits</Typography>
+                  </MenuItem>
+                  <MenuItem
+                    onClick={handleCloseNavMenu}
+                    component={Link}
+                    to="/admin/orders"
+                  >
+                    <OrdersIcon sx={{ mr: 1 }} />
+                    <Typography textAlign="center">Gestion Commandes</Typography>
+                  </MenuItem>
+                </>
+              )}
             </Menu>
           </Box>
-        )}
 
-        {/* Navigation desktop */}
-        <Box sx={{ 
-          flexGrow: 1, 
-          display: { xs: 'none', md: 'flex' }, 
-          justifyContent: 'center',
-          gap: 2
-        }}>
-          <Button
+          {/* Logo - Mobile */}
+          <Typography
+            variant="h5"
+            noWrap
             component={Link}
             to="/"
-            sx={{ 
-              color: '#ffffff',
-              '&:hover': { color: '#ffd700' }
+            sx={{
+              mr: 2,
+              display: { xs: 'flex', md: 'none' },
+              flexGrow: 1,
+              fontFamily: 'Playfair Display, serif',
+              fontWeight: 700,
+              color: 'inherit',
+              textDecoration: 'none',
             }}
           >
-            Accueil
-          </Button>
-          {categories.map((category) => (
-            <Button
-              key={category.path}
+            Délices Sucrés
+          </Typography>
+
+          {/* Menu Desktop */}
+          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+            {pages.map((page) => (
+              <Button
+                key={page.title}
+                component={Link}
+                to={page.path}
+                onClick={handleCloseNavMenu}
+                sx={{ my: 2, color: 'white', display: 'block' }}
+              >
+                {page.title}
+              </Button>
+            ))}
+            {isAdmin && (
+              <>
+                <Button
+                  component={Link}
+                  to="/admin/products"
+                  onClick={handleCloseNavMenu}
+                  sx={{ my: 2, color: 'white', display: 'flex', alignItems: 'center' }}
+                  startIcon={<ProductsIcon />}
+                >
+                  Gestion Produits
+                </Button>
+                <Button
+                  component={Link}
+                  to="/admin/orders"
+                  onClick={handleCloseNavMenu}
+                  sx={{ my: 2, color: 'white', display: 'flex', alignItems: 'center' }}
+                  startIcon={<OrdersIcon />}
+                >
+                  Gestion Commandes
+                </Button>
+              </>
+            )}
+          </Box>
+
+          {/* Right Section */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {/* Cart Icon */}
+            <IconButton
               component={Link}
-              to={category.path}
-              sx={{ 
-                color: '#ffffff',
-                '&:hover': { color: '#ffd700' }
-              }}
+              to="/cart"
+              size="large"
+              aria-label="show cart items"
+              color="inherit"
+              sx={{ mr: 2 }}
             >
-              {category.name}
-            </Button>
-          ))}
-        </Box>
+              <Badge badgeContent={getCartItemCount()} color="error">
+                <ShoppingCartIcon />
+              </Badge>
+            </IconButton>
 
-        {/* Panier */}
-        <IconButton
-          component={Link}
-          to="/cart"
-          sx={{
-            color: '#ffffff',
-            '&:hover': { color: '#ffd700' },
-          }}
-        >
-          <Badge badgeContent={getCartItemsCount()} color="error">
-            <ShoppingCartIcon />
-          </Badge>
-        </IconButton>
-
-        {/* Drawer pour mobile */}
-        <Drawer
-          variant="temporary"
-          anchor="left"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
-          sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
-              width: 250,
-              backgroundColor: '#1a1a1a',
-              color: '#ffffff'
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-      </Toolbar>
+            {/* User Menu */}
+            {user ? (
+              <Box sx={{ flexGrow: 0 }}>
+                <Tooltip title="Paramètres">
+                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                    <Avatar 
+                      alt={user.email} 
+                      src={user.photoURL || "/static/images/avatar/2.jpg"}
+                      sx={{ bgcolor: isAdmin ? 'primary.main' : 'secondary.main' }}
+                    >
+                      {isAdmin ? <AdminIcon /> : user.email?.charAt(0).toUpperCase()}
+                    </Avatar>
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  sx={{ mt: '45px' }}
+                  id="menu-appbar"
+                  anchorEl={anchorElUser}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  keepMounted
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  open={Boolean(anchorElUser)}
+                  onClose={handleCloseUserMenu}
+                >
+                  <MenuItem
+                    component={Link}
+                    to="/profile"
+                    onClick={handleCloseUserMenu}
+                  >
+                    <Typography textAlign="center">Profile</Typography>
+                  </MenuItem>
+                  <MenuItem
+                    component={Link}
+                    to="/orders"
+                    onClick={handleCloseUserMenu}
+                  >
+                    <Typography textAlign="center">Mes Commandes</Typography>
+                  </MenuItem>
+                  {isAdmin && (
+                    <>
+                      <Divider />
+                      <MenuItem
+                        component={Link}
+                        to="/admin/products"
+                        onClick={handleCloseUserMenu}
+                      >
+                        <ProductsIcon sx={{ mr: 1 }} />
+                        <Typography textAlign="center">Gestion Produits</Typography>
+                      </MenuItem>
+                      <MenuItem
+                        component={Link}
+                        to="/admin/orders"
+                        onClick={handleCloseUserMenu}
+                      >
+                        <OrdersIcon sx={{ mr: 1 }} />
+                        <Typography textAlign="center">Gestion Commandes</Typography>
+                      </MenuItem>
+                    </>
+                  )}
+                  <Divider />
+                  <MenuItem onClick={handleLogout}>
+                    <Typography textAlign="center">Déconnexion</Typography>
+                  </MenuItem>
+                </Menu>
+              </Box>
+            ) : (
+              <Button
+                component={Link}
+                to="/login"
+                variant="outlined"
+                sx={{
+                  color: 'white',
+                  borderColor: 'white',
+                  '&:hover': {
+                    borderColor: 'white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  },
+                }}
+              >
+                Connexion
+              </Button>
+            )}
+          </Box>
+        </Toolbar>
+      </Container>
     </AppBar>
   );
 };

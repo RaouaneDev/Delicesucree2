@@ -13,28 +13,59 @@ import {
   Box,
   Collapse,
   Chip,
-  TextField,
-  InputAdornment,
+  CircularProgress,
+  Alert,
+  Grid,
+  Card,
+  CardContent,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { useNavigate } from 'react-router-dom';
-import PasswordProtection from './PasswordProtection';
-import { scrollToTop } from '../utils/scrollToTop';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { useAuth } from '../context/AuthContext';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
-const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
+const ORDER_STATUS_COLORS = {
+  'pending': 'warning',
+  'processing': 'info',
+  'completed': 'success',
+  'cancelled': 'error',
+  'en_preparation': 'warning',
+  'en_livraison': 'info',
+  'livre': 'success',
+  'annule': 'error'
 };
 
-const Row = ({ order }) => {
+const ORDER_STATUS_LABELS = {
+  'pending': 'En attente',
+  'processing': 'En préparation',
+  'completed': 'Livré',
+  'cancelled': 'Annulé',
+  'en_preparation': 'En préparation',
+  'en_livraison': 'En livraison',
+  'livre': 'Livré',
+  'annule': 'Annulé'
+};
+
+const formatDate = (date) => {
+  if (!date) return 'Date inconnue';
+  try {
+    const timestamp = date.seconds ? new Date(date.seconds * 1000) : new Date(date);
+    return format(timestamp, "d MMMM yyyy 'à' HH:mm", { locale: fr });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Date invalide';
+  }
+};
+
+const OrderRow = ({ order }) => {
   const [open, setOpen] = useState(false);
+
+  const calculateTotal = (items) => {
+    return items?.reduce((total, item) => total + (item.price * item.quantity), 0) || 0;
+  };
 
   return (
     <>
@@ -48,72 +79,83 @@ const Row = ({ order }) => {
             {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
           </IconButton>
         </TableCell>
-        <TableCell component="th" scope="row">
-          {order.orderNumber}
-        </TableCell>
-        <TableCell>{order.customerInfo.firstName} {order.customerInfo.lastName}</TableCell>
-        <TableCell>{formatDate(order.deliveryDateTime)}</TableCell>
+        <TableCell>{order.id.slice(-6).toUpperCase()}</TableCell>
+        <TableCell>{formatDate(order.createdAt)}</TableCell>
+        <TableCell>{calculateTotal(order.items).toFixed(2)}€</TableCell>
         <TableCell>
-          {order.items.reduce((total, item) => 
-            total + (parseFloat(item.price) * item.quantity), 0
-          ).toFixed(2)}€
-        </TableCell>
-        <TableCell>
-          <Chip 
-            label={order.status || 'En attente'} 
-            color={
-              order.status === 'Livré' ? 'success' :
-              order.status === 'En préparation' ? 'warning' :
-              'default'
-            }
+          <Chip
+            label={ORDER_STATUS_LABELS[order.status] || order.status}
+            color={ORDER_STATUS_COLORS[order.status] || 'default'}
+            size="small"
           />
         </TableCell>
       </TableRow>
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 1 }}>
-              <Typography variant="h6" gutterBottom component="div">
-                Détails de la commande
-              </Typography>
-              <Table size="small" aria-label="purchases">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Produit</TableCell>
-                    <TableCell>Quantité</TableCell>
-                    <TableCell>Prix unitaire</TableCell>
-                    <TableCell>Total</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {order.items.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell component="th" scope="row">
-                        {item.name}
-                      </TableCell>
-                      <TableCell>{item.quantity}</TableCell>
-                      <TableCell>{item.price}€</TableCell>
-                      <TableCell>
-                        {(item.quantity * parseFloat(item.price)).toFixed(2)}€
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Informations de livraison :
-                </Typography>
-                <Typography variant="body2">
-                  Adresse : {order.customerInfo.address}
-                </Typography>
-                <Typography variant="body2">
-                  Téléphone : {order.customerInfo.phone}
-                </Typography>
-                <Typography variant="body2">
-                  Email : {order.customerInfo.email}
-                </Typography>
-              </Box>
+            <Box sx={{ margin: 2 }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Informations de livraison
+                      </Typography>
+                      <Typography variant="body2">
+                        {order.shippingDetails?.firstName || 'N/A'} {order.shippingDetails?.lastName || ''}
+                      </Typography>
+                      <Typography variant="body2">
+                        {order.shippingDetails?.email || 'Pas d\'email'}
+                      </Typography>
+                      <Typography variant="body2">
+                        {order.shippingDetails?.phone || 'Pas de téléphone'}
+                      </Typography>
+                      <Typography variant="body2">
+                        {order.shippingDetails?.address || 'Pas d\'adresse'}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Détails de la commande
+                      </Typography>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Produit</TableCell>
+                            <TableCell align="right">Qté</TableCell>
+                            <TableCell align="right">Prix</TableCell>
+                            <TableCell align="right">Total</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {order.items?.map((item, index) => (
+                            <TableRow key={index}>
+                              <TableCell>{item.name}</TableCell>
+                              <TableCell align="right">{item.quantity}</TableCell>
+                              <TableCell align="right">{item.price}€</TableCell>
+                              <TableCell align="right">
+                                {(item.price * item.quantity).toFixed(2)}€
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow>
+                            <TableCell colSpan={3} align="right">
+                              <strong>Total</strong>
+                            </TableCell>
+                            <TableCell align="right">
+                              <strong>{calculateTotal(order.items).toFixed(2)}€</strong>
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
             </Box>
           </Collapse>
         </TableCell>
@@ -124,94 +166,101 @@ const Row = ({ order }) => {
 
 const OrderHistory = () => {
   const [orders, setOrders] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showPasswordDialog, setShowPasswordDialog] = useState(true);
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    scrollToTop();
-    const savedOrders = JSON.parse(localStorage.getItem('orderHistory') || '[]');
-    setOrders(savedOrders);
-  }, []);
+    const loadOrders = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-  const handlePasswordSuccess = () => {
-    setIsAuthenticated(true);
-    setShowPasswordDialog(false);
-  };
+      try {
+        const ordersRef = collection(db, 'orders');
+        const q = query(
+          ordersRef,
+          where('userId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const ordersData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        setOrders(ordersData);
+        setError(null);
+      } catch (err) {
+        console.error('Error loading orders:', err);
+        setError('Une erreur est survenue lors du chargement de vos commandes.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleClose = () => {
-    if (!isAuthenticated) {
-      navigate('/');
-    }
-    setShowPasswordDialog(false);
-  };
+    loadOrders();
+  }, [user]);
 
-  const filteredOrders = orders.filter(order => 
-    order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    `${order.customerInfo.firstName} ${order.customerInfo.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (!isAuthenticated) {
+  if (loading) {
     return (
-      <PasswordProtection
-        open={showPasswordDialog}
-        onClose={handleClose}
-        onSuccess={handlePasswordSuccess}
-      />
+      <Container sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container sx={{ py: 4 }}>
+        <Alert severity="error">{error}</Alert>
+      </Container>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Container sx={{ py: 4 }}>
+        <Alert severity="info">
+          Veuillez vous connecter pour voir votre historique de commandes.
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (orders.length === 0) {
+    return (
+      <Container sx={{ py: 4 }}>
+        <Alert severity="info">
+          Vous n'avez pas encore passé de commande.
+        </Alert>
+      </Container>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom component="h1" align="center">
-        Historique des Commandes
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Historique des commandes
       </Typography>
       
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          fullWidth
-          label="Rechercher une commande"
-          variant="outlined"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Rechercher par numéro de commande ou nom du client"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
-
-      <TableContainer component={Paper}>
-        <Table aria-label="collapsible table">
+      <TableContainer component={Paper} elevation={3}>
+        <Table>
           <TableHead>
             <TableRow>
               <TableCell />
               <TableCell>N° Commande</TableCell>
-              <TableCell>Client</TableCell>
-              <TableCell>Date de livraison</TableCell>
+              <TableCell>Date</TableCell>
               <TableCell>Total</TableCell>
               <TableCell>Statut</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredOrders.length > 0 ? (
-              filteredOrders.map((order, index) => (
-                <Row key={index} order={order} />
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <Typography variant="subtitle1" sx={{ py: 2 }}>
-                    {searchTerm ? "Aucune commande trouvée" : "Aucune commande enregistrée"}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
+            {orders.map((order) => (
+              <OrderRow key={order.id} order={order} />
+            ))}
           </TableBody>
         </Table>
       </TableContainer>
