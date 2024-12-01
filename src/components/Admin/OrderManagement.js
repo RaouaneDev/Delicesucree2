@@ -1,4 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { db } from '../../firebase/config';
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { useAuth } from '../../context/AuthContext';
+
+// Material-UI Components
 import {
   Container,
   Table,
@@ -14,206 +22,100 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Box,
   Chip,
   Alert,
-  CircularProgress,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Grid,
   Card,
+  CardHeader,
   CardContent,
-  Tabs,
-  Tab,
-  Tooltip,
-  IconButton
+  CircularProgress
 } from '@mui/material';
-import {
-  Edit as EditIcon,
-  Visibility as VisibilityIcon,
-  LocalShipping as ShippingIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
-  AccessTime as TimeIcon
-} from '@mui/icons-material';
-import { 
-  getAllOrders, 
-  updateOrderStatus, 
-  getOrdersByStatus,
-  addOrderNotes 
-} from '../../firebase/orderService';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 
 const ORDER_STATUSES = {
   pending: { label: 'En attente', color: 'warning' },
-  confirmed: { label: 'Confirmée', color: 'info' },
-  preparing: { label: 'En préparation', color: 'primary' },
-  ready: { label: 'Prête', color: 'success' },
-  completed: { label: 'Terminée', color: 'default' },
-  cancelled: { label: 'Annulée', color: 'error' }
+  processing: { label: 'En cours', color: 'info' },
+  shipped: { label: 'Expédié', color: 'primary' },
+  delivered: { label: 'Livré', color: 'success' },
+  cancelled: { label: 'Annulé', color: 'error' }
 };
 
 const OrderManagement = () => {
-  const { isAdmin } = useAuth();
-  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
-  const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [currentTab, setCurrentTab] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [error, setError] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!isAdmin) {
-      navigate('/');
-      return;
-    }
-    loadOrders();
-  }, [isAdmin, navigate, loadOrders]);
-
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     try {
       setLoading(true);
-      let ordersData;
-      if (statusFilter === 'all') {
-        ordersData = await getAllOrders();
-      } else {
-        ordersData = await getOrdersByStatus(statusFilter);
-      }
-      // Assurons-nous que chaque commande a une structure valide
-      const validatedOrders = ordersData.map(order => ({
-        id: order.id || 'N/A',
-        createdAt: order.createdAt || null,
-        status: order.status || 'pending',
-        items: order.items || [],
-        shippingDetails: {
-          firstName: order.shippingDetails?.firstName || 'N/A',
-          lastName: order.shippingDetails?.lastName || '',
-          email: order.shippingDetails?.email || 'Pas d\'email',
-          phone: order.shippingDetails?.phone || 'Pas de téléphone',
-          address: order.shippingDetails?.address || 'Pas d\'adresse'
-        },
-        notes: order.notes || ''
+      const ordersRef = collection(db, 'orders');
+      const querySnapshot = await getDocs(ordersRef);
+      const ordersData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
-      setOrders(validatedOrders);
-      setError(null);
+      setOrders(ordersData);
     } catch (error) {
-      console.error('Error loading orders:', error);
-      setError('Erreur lors du chargement des commandes. Veuillez réessayer.');
+      setError('Erreur lors du chargement des commandes: ' + error.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleOpenDialog = (order) => {
-    setSelectedOrder(order);
-    setNotes(order.notes || '');
-    setOpenDialog(true);
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setSelectedOrder(null);
-    setNotes('');
-  };
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    loadOrders();
+  }, [currentUser, navigate, loadOrders]);
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
-      await updateOrderStatus(orderId, newStatus, notes);
+      const orderRef = doc(db, 'orders', orderId);
+      await updateDoc(orderRef, {
+        status: newStatus,
+        updatedAt: new Date()
+      });
       await loadOrders();
-      handleCloseDialog();
     } catch (error) {
-      console.error('Error updating order status:', error);
-      setError('Erreur lors de la mise à jour du statut. Veuillez réessayer.');
+      setError('Erreur lors de la mise à jour du statut: ' + error.message);
     }
   };
 
-  const handleNotesChange = async (orderId, newNotes) => {
-    try {
-      await addOrderNotes(orderId, newNotes);
-      await loadOrders();
-      handleCloseDialog();
-    } catch (error) {
-      console.error('Error updating notes:', error);
-      setError('Erreur lors de la mise à jour des notes. Veuillez réessayer.');
-    }
-  };
-
-  const handleTabChange = (event, newValue) => {
-    setCurrentTab(newValue);
-    setStatusFilter(newValue);
+  const getStatusChipColor = (status) => {
+    return ORDER_STATUSES[status]?.color || 'default';
   };
 
   const formatDate = (date) => {
-    if (!date) return 'Date inconnue';
-    try {
-      const timestamp = date.seconds ? new Date(date.seconds * 1000) : new Date(date);
-      return format(timestamp, "d MMMM yyyy 'à' HH:mm", { locale: fr });
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Date invalide';
-    }
+    if (!date) return '';
+    return format(date.toDate(), 'PPP', { locale: fr });
   };
-
-  const calculateTotal = (items) => {
-    return items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2);
-  };
-
-  if (!isAdmin) {
-    return null;
-  }
 
   if (loading) {
     return (
-      <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
         <CircularProgress />
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" color="primary">
-          Gestion des Commandes
-        </Typography>
-      </Box>
+    <Container maxWidth="lg">
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Paper sx={{ mb: 2 }}>
-        <Tabs
-          value={currentTab}
-          onChange={handleTabChange}
-          indicatorColor="primary"
-          textColor="primary"
-          variant="scrollable"
-          scrollButtons="auto"
-        >
-          <Tab label="Toutes" value="all" />
-          {Object.entries(ORDER_STATUSES).map(([status, { label }]) => (
-            <Tab key={status} label={label} value={status} />
-          ))}
-        </Tabs>
-      </Paper>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Gestion des Commandes
+      </Typography>
 
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>N° Commande</TableCell>
+              <TableCell>ID Commande</TableCell>
               <TableCell>Date</TableCell>
               <TableCell>Client</TableCell>
               <TableCell>Total</TableCell>
@@ -224,30 +126,24 @@ const OrderManagement = () => {
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell>{order.id.slice(-6).toUpperCase()}</TableCell>
+                <TableCell>{order.id}</TableCell>
                 <TableCell>{formatDate(order.createdAt)}</TableCell>
-                <TableCell>
-                  <Typography variant="body2">
-                    {order.shippingDetails?.firstName || 'N/A'} {order.shippingDetails?.lastName || ''}
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    {order.shippingDetails?.email || 'Pas d\'email'}
-                  </Typography>
-                </TableCell>
-                <TableCell>{calculateTotal(order.items)} €</TableCell>
+                <TableCell>{order.customerName}</TableCell>
+                <TableCell>{order.total.toFixed(2)} €</TableCell>
                 <TableCell>
                   <Chip
                     label={ORDER_STATUSES[order.status]?.label || order.status}
-                    color={ORDER_STATUSES[order.status]?.color || 'default'}
-                    size="small"
+                    color={getStatusChipColor(order.status)}
                   />
                 </TableCell>
                 <TableCell>
-                  <Tooltip title="Voir les détails">
-                    <IconButton onClick={() => handleOpenDialog(order)} color="primary" size="small">
-                      <VisibilityIcon />
-                    </IconButton>
-                  </Tooltip>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setSelectedOrder(order)}
+                  >
+                    Détails
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -255,122 +151,49 @@ const OrderManagement = () => {
         </Table>
       </TableContainer>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog open={!!selectedOrder} onClose={() => setSelectedOrder(null)} maxWidth="md" fullWidth>
         {selectedOrder && (
           <>
             <DialogTitle>
-              Commande #{selectedOrder.id.slice(-6).toUpperCase()}
+              Détails de la commande #{selectedOrder.id}
             </DialogTitle>
             <DialogContent>
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
-                  <Card variant="outlined">
+                  <Card>
+                    <CardHeader title="Informations client" />
                     <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Informations Client
-                      </Typography>
-                      <Typography variant="body2">
-                        {selectedOrder.shippingDetails?.firstName || 'N/A'} {selectedOrder.shippingDetails?.lastName || ''}
-                      </Typography>
-                      <Typography variant="body2">
-                        {selectedOrder.shippingDetails?.email || 'Pas d\'email'}
-                      </Typography>
-                      <Typography variant="body2">
-                        {selectedOrder.shippingDetails?.phone || 'Pas de téléphone'}
-                      </Typography>
-                      <Typography variant="body2">
-                        {selectedOrder.shippingDetails?.address || 'Pas d\'adresse'}
-                      </Typography>
+                      <Typography>Nom: {selectedOrder.customerName}</Typography>
+                      <Typography>Email: {selectedOrder.customerEmail}</Typography>
+                      <Typography>Téléphone: {selectedOrder.customerPhone}</Typography>
                     </CardContent>
                   </Card>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <Card variant="outlined">
+                  <Card>
+                    <CardHeader title="Adresse de livraison" />
                     <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Détails de la Commande
+                      <Typography>{selectedOrder.shippingAddress?.street}</Typography>
+                      <Typography>
+                        {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.postalCode}
                       </Typography>
-                      <Typography variant="body2">
-                        Date: {formatDate(selectedOrder.createdAt)}
-                      </Typography>
-                      <Typography variant="body2">
-                        Total: {calculateTotal(selectedOrder.items)} €
-                      </Typography>
-                      <Typography variant="body2">
-                        Statut: {ORDER_STATUSES[selectedOrder.status]?.label}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Articles
-                      </Typography>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Produit</TableCell>
-                            <TableCell align="right">Quantité</TableCell>
-                            <TableCell align="right">Prix unitaire</TableCell>
-                            <TableCell align="right">Total</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {selectedOrder.items.map((item, index) => (
-                            <TableRow key={index}>
-                              <TableCell>{item.name}</TableCell>
-                              <TableCell align="right">{item.quantity}</TableCell>
-                              <TableCell align="right">{item.price} €</TableCell>
-                              <TableCell align="right">
-                                {(item.price * item.quantity).toFixed(2)} €
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Notes
-                      </Typography>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        variant="outlined"
-                      />
                     </CardContent>
                   </Card>
                 </Grid>
               </Grid>
             </DialogContent>
             <DialogActions>
-              <FormControl sx={{ m: 1, minWidth: 200 }}>
-                <InputLabel>Changer le statut</InputLabel>
-                <Select
-                  value={selectedOrder.status}
-                  label="Changer le statut"
-                  onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value)}
+              <Button onClick={() => setSelectedOrder(null)}>Fermer</Button>
+              {Object.entries(ORDER_STATUSES).map(([status, { label }]) => (
+                <Button
+                  key={status}
+                  variant={selectedOrder.status === status ? 'contained' : 'outlined'}
+                  onClick={() => handleStatusChange(selectedOrder.id, status)}
+                  disabled={selectedOrder.status === status}
                 >
-                  {Object.entries(ORDER_STATUSES).map(([status, { label }]) => (
-                    <MenuItem key={status} value={status}>
-                      {label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Button onClick={() => handleNotesChange(selectedOrder.id, notes)} color="primary">
-                Sauvegarder les notes
-              </Button>
-              <Button onClick={handleCloseDialog}>Fermer</Button>
+                  {label}
+                </Button>
+              ))}
             </DialogActions>
           </>
         )}

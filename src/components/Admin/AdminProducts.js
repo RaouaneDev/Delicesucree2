@@ -37,8 +37,8 @@ import { useNavigate } from 'react-router-dom';
 const AdminProducts = () => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);  
+  const [categories, setCategories] = useState([]);  
   const [open, setOpen] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -254,36 +254,44 @@ const AdminProducts = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
-                  />
-                </TableCell>
-                <TableCell>{product.name}</TableCell>
-                <TableCell>{formatPrice(product.price)} €</TableCell>
-                <TableCell>{product.categoryName}</TableCell>
-                <TableCell>{product.subcategoryName}</TableCell>
-                <TableCell>
-                  <Chip 
-                    label={product.available ? "Disponible" : "Indisponible"}
-                    color={product.available ? "success" : "error"}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <IconButton onClick={() => handleOpen(product)} color="primary" size="small">
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton onClick={() => handleDelete(product.id)} color="error" size="small">
-                    <DeleteIcon />
-                  </IconButton>
+            {products?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  Aucun produit disponible
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              products?.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell>
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
+                    />
+                  </TableCell>
+                  <TableCell>{product.name}</TableCell>
+                  <TableCell>{formatPrice(product.price)} €</TableCell>
+                  <TableCell>{product.categoryName}</TableCell>
+                  <TableCell>{product.subcategoryName}</TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={product.available ? "Disponible" : "Indisponible"}
+                      color={product.available ? "success" : "error"}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => handleOpen(product)} color="primary" size="small">
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton onClick={() => handleDelete(product.id)} color="error" size="small">
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
@@ -347,7 +355,7 @@ const AdminProducts = () => {
                   onChange={handleChange}
                   label="Catégorie"
                 >
-                  {categories.map((category) => (
+                  {categories?.map((category) => (
                     <MenuItem key={category.id} value={category.id}>
                       {category.name}
                     </MenuItem>
@@ -364,7 +372,7 @@ const AdminProducts = () => {
                   onChange={handleChange}
                   label="Sous-catégorie"
                 >
-                  {selectedCategory?.subcategories.map((subcategory) => (
+                  {selectedCategory?.subcategories?.map((subcategory) => (
                     <MenuItem key={subcategory.id} value={subcategory.id}>
                       {subcategory.name}
                     </MenuItem>
