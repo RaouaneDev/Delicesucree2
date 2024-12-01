@@ -50,11 +50,14 @@ const Login = () => {
     try {
       setError('');
       setLoading(true);
+      console.log('Tentative de connexion avec Google...');
       const user = await signInWithGoogle();
+      console.log('Utilisateur connecté avec Google:', user);
       setUser(user);
       navigate('/');
     } catch (error) {
-      setError('Échec de la connexion avec Google.');
+      console.error('Erreur de connexion Google dans le composant:', error);
+      setError(error.message || 'Erreur lors de la connexion avec Google');
     } finally {
       setLoading(false);
     }

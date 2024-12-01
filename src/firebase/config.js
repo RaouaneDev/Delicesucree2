@@ -14,6 +14,11 @@ const firebaseConfig = {
   measurementId: "G-S65HGYV05G"
 };
 
+// Vérifier l'environnement
+const isProduction = window.location.hostname !== 'localhost';
+console.log('Environnement:', isProduction ? 'Production' : 'Développement');
+console.log('Domaine:', window.location.hostname);
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
@@ -26,6 +31,6 @@ setPersistence(auth, browserLocalPersistence)
 
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const analytics = getAnalytics(app);
+export const analytics = isProduction ? getAnalytics(app) : null;
 
 export default app;

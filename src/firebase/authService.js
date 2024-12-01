@@ -49,9 +49,20 @@ const handleAuthError = (error) => {
 // Connexion avec Google
 export const signInWithGoogle = async () => {
   try {
+    console.log('Début de la connexion Google...');
+    googleProvider.setCustomParameters({
+      prompt: 'select_account'
+    });
     const result = await signInWithPopup(auth, googleProvider);
+    console.log('Connexion Google réussie:', result.user);
     return result.user;
   } catch (error) {
+    console.error('Erreur détaillée de connexion Google:', {
+      code: error.code,
+      message: error.message,
+      email: error.email,
+      credential: error.credential
+    });
     throw handleAuthError(error);
   }
 };
